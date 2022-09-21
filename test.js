@@ -10,3 +10,13 @@ var eventsURL = []
 for(var i = 1; i < parties.length; i++) {
     eventsURL.push("https://ra.co" + parties[i].getElementsByTagName("a")[0].getAttribute("href"))
 }
+
+root = this.document.body.firstChild.getElementsByTagName("header")[0].getElementsByTagName("div")[0]
+
+partyName = root.getElementsByTagName("h1")[0].getElementsByTagName("span")[0].textContent
+
+partyPlace = root.getElementsByTagName("ul")[1].getElementsByTagName("li")[0].getElementsByTagName("span")[1].textContent
+
+partyAttendance = root.getElementsByTagName("ul")[1].getElementsByTagName("li")[4].getElementsByTagName("span")[1].textContent
+
+partyTimes = root.getElementsByTagName("ul")[1].getElementsByTagName("li")[2].getElementsByTagName("span")[2].textContent + " / " + root.getElementsByTagName("ul")[1].getElementsByTagName("li")[2].getElementsByTagName("span")[4].textContent

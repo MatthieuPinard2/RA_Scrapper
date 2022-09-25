@@ -1,0 +1,80 @@
+<HTML>
+	<body>
+		<script type="application/javascript">
+			// This function loads an URL into an HTMLDocument.
+			async function loadXMLDoc(url) {
+				httpRequest = new XMLHttpRequest();
+				httpRequest.open("GET", url, false);
+				httpRequest.send();
+				var doc = new DOMParser().parseFromString(httpRequest.responseText, "text/html");
+				return doc;
+			}
+			
+			objectURL = ""
+			
+			var dateStr = ""
+
+			async function startParsingEvents() {				
+				// Script parameters.
+				dateStr = prompt("Enter the date in YYYY-MM-DD format")
+				
+				htmlPage = "<html><head><style>p.p{margin-left:50px; font-family:\"courier\";}</style></head><body><h1 style=\"background-color:turquoise;\">Events for date " + dateStr + "</h1><hr>"
+
+				async function parseAllEvents(date_str) {
+					doc = await loadXMLDoc("https://ra.co/events/uk/london?week=" + date_str)
+					root = doc.body.firstChild.getElementsByTagName("header")[0].nextSibling.getElementsByTagName("section")[1].getElementsByTagName("div")[0].getElementsByTagName("div")[0].getElementsByTagName("div")[1].getElementsByTagName("ul")[0].getElementsByTagName("li")[0].getElementsByTagName("div")[0]
+					parties = root.getElementsByTagName("h3")
+					var eventsURLs = []
+					for(var i = 1; i < parties.length; i++) {
+							eventsURLs.push("https://ra.co" + parties[i].getElementsByTagName("a")[0].getAttribute("href"))
+					}
+					eventsURLs = Array.from(new Set(eventsURLs))
+					return eventsURLs;
+				}
+
+				// This function loads the URL given as input (returned by the parseAllEvents() function), and parses the document in order to find
+				// the event name, place, times as well as the number of persons attending the event.
+				async function parseEvent(eventURL) {
+					doc = await loadXMLDoc(eventURL)
+					root = doc.body.firstChild.getElementsByTagName("header")[0].getElementsByTagName("div")[0]
+					eventName = root.getElementsByTagName("h1")[0].getElementsByTagName("span")[0].textContent
+					eventPlace = root.getElementsByTagName("ul")[1].getElementsByTagName("li")[0].getElementsByTagName("span")[1].textContent
+					liTags = root.getElementsByTagName("ul")[1].getElementsByTagName("li")
+					eventAttendance = liTags[liTags.length - 3].getElementsByTagName("span")[1].textContent
+					eventTimes = root.getElementsByTagName("ul")[1].getElementsByTagName("li")[2].getElementsByTagName("span")[2].textContent + " / " + root.getElementsByTagName("ul")[1].getElementsByTagName("li")[2].getElementsByTagName("span")[4].textContent
+					eventLineup = doc.body.firstChild.getElementsByTagName("header")[0].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.firstElementChild.firstElementChild.nextElementSibling.firstElementChild.firstElementChild.firstElementChild.firstElementChild.nextElementSibling.textContent
+					htmlPage += "<h2 style=\"background-color:powderblue;\">" + eventName + "<br>(" + eventPlace + ", " + eventTimes + ", " + eventAttendance + " attending, <a href=\"" + eventURL + "\">Event URL</a>)" + "</h2><p class=\"p\">" + eventLineup.replaceAll('\n', '<br>') + "</p><hr>"
+				}
+
+				allEvents = await parseAllEvents(dateStr)
+								
+				for(var i = 0; i < allEvents.length; i++) {
+					await parseEvent(allEvents[i]);
+				}
+
+				htmlPage += "</body></html>"
+				const blob = new Blob([htmlPage], { type : "text/html;charset=utf-8" })
+				objectURL = URL.createObjectURL(blob)
+				alert("Events parsed successfully...")
+			}
+						
+			function viewEvents() {
+				var newWindow = window.open('', '_blank');
+				newWindow.location.href = objectURL
+				newWindow.focus()
+			}
+			
+			function downloadEvents() {
+			  var a = document.getElementById("download");
+			  a.href = objectURL
+			  a.download = dateStr + ".html";
+			}
+
+		</script>
+		<button onclick="startParsingEvents()">Start parsing events</button>
+		<hr>
+		<button onclick="viewEvents()">View Events</button>
+		<hr>
+		<a id="download" onclick="downloadEvents()">Download Events</a>
+	</body>
+</HTML>

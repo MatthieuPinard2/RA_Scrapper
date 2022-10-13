@@ -20,18 +20,28 @@
 				
 				htmlPage = "<html><head><style>p.p{margin-left:50px; font-family:\"courier\";}</style></head><body><h1 style=\"background-color:turquoise;\">Events for date " + dateStr + "</h1><hr>"
 
-				async function parseAllEvents(date_str) {
-					doc = await loadXMLDoc("https://ra.co/events/uk/london?week=" + date_str)
+				async function parseAllEvents(date_str, pageIdx, expectedDate) {
+					doc = await loadXMLDoc("https://ra.co/events/uk/london?week=" + date_str + "&page=" + pageIdx)
 					root = doc.body.firstChild.getElementsByTagName("header")[0].nextSibling.getElementsByTagName("section")[1].getElementsByTagName("div")[0].getElementsByTagName("div")[0].getElementsByTagName("div")[1].getElementsByTagName("ul")[0].getElementsByTagName("li")[0].getElementsByTagName("div")[0]
 					parties = root.getElementsByTagName("h3")
+					thisDate = parties[0].textContent.substr(1,)
 					var eventsURLs = []
-					for(var i = 1; i < parties.length; i++) {
-							eventsURLs.push("https://ra.co" + parties[i].getElementsByTagName("a")[0].getAttribute("href"))
+					if (thisDate === expectedDate) {
+						for(var i = 1; i < parties.length; i++) {
+								eventsURLs.push("https://ra.co" + parties[i].getElementsByTagName("a")[0].getAttribute("href"))
+						}
+						eventsURLs = Array.from(new Set(eventsURLs))
 					}
-					eventsURLs = Array.from(new Set(eventsURLs))
 					return eventsURLs;
 				}
 
+				async function getDate(date_str) {
+					doc = await loadXMLDoc("https://ra.co/events/uk/london?week=" + date_str)
+					root = doc.body.firstChild.getElementsByTagName("header")[0].nextSibling.getElementsByTagName("section")[1].getElementsByTagName("div")[0].getElementsByTagName("div")[0].getElementsByTagName("div")[1].getElementsByTagName("ul")[0].getElementsByTagName("li")[0].getElementsByTagName("div")[0]
+					thisDate = root.getElementsByTagName("h3")[0].textContent.substr(1,)
+					return thisDate;
+				}
+				
 				// This function loads the URL given as input (returned by the parseAllEvents() function), and parses the document in order to find
 				// the event name, place, times as well as the number of persons attending the event.
 				async function parseEvent(eventURL) {
@@ -46,8 +56,18 @@
 					htmlPage += "<h2 style=\"background-color:powderblue;\">" + eventName + "<br>(" + eventPlace + ", " + eventTimes + ", " + eventAttendance + " attending, <a href=\"" + eventURL + "\">Event URL</a>)" + "</h2><p class=\"p\">" + eventLineup.replaceAll('\n', '<br>') + "</p><hr>"
 				}
 
-				allEvents = await parseAllEvents(dateStr)
-								
+				expectedDate = await getDate(dateStr)
+				pageIdx = 1
+				allEvents = []
+				while(true) {
+					pageEvents = await parseAllEvents(dateStr, pageIdx, expectedDate)
+					if (pageEvents.length == 0) {
+						break;
+					}
+					allEvents = allEvents.concat(pageEvents)
+					pageIdx++;
+				}
+												
 				for(var i = 0; i < allEvents.length; i++) {
 					await parseEvent(allEvents[i]);
 				}
